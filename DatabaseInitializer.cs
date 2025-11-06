@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 
 namespace DataAccess.Database
 {
@@ -38,7 +38,6 @@ namespace DataAccess.Database
                 CREATE TABLE IF NOT EXISTS Supplier (
                     Supplier_ID INTEGER PRIMARY KEY AUTOINCREMENT,
                     Name TEXT NOT NULL,
-                    Contact TEXT,
                     Phone TEXT,
                     Email TEXT
                 );";
