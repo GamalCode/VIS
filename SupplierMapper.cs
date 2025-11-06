@@ -1,4 +1,4 @@
-﻿namespace Domain.Mappers
+namespace Domain.Mappers
 {
     public static class SupplierMapper
     {
@@ -10,7 +10,6 @@
             {
                 Supplier_ID = daoSupplier.Supplier_ID,
                 Name = daoSupplier.Name,
-                Contact = daoSupplier.Contact,
                 Phone = daoSupplier.Phone,
                 Email = daoSupplier.Email
             };
@@ -24,7 +23,6 @@
             {
                 Supplier_ID = domainSupplier.Supplier_ID,
                 Name = domainSupplier.Name,
-                Contact = domainSupplier.Contact,
                 Phone = domainSupplier.Phone,
                 Email = domainSupplier.Email
             };
