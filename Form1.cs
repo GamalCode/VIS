@@ -205,5 +205,11 @@ namespace VIS_Projekt
             txtSupplierId.Clear();
             txtPrice.Clear();
         }
+
+        private void btnOpen_Click(object sender, EventArgs e)
+        {
+            Form2 form2 = new Form2();
+            form2.ShowDialog();
+        }
     }
 }
