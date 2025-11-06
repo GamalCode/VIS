@@ -1,4 +1,4 @@
-﻿using DataAccess.Database;
+using DataAccess.Database;
 
 namespace DataAccess.Strategy.Supplier
 {
@@ -20,7 +20,7 @@ namespace DataAccess.Strategy.Supplier
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT Supplier_ID, Name, Contact, Phone, Email FROM Supplier";
+                    command.CommandText = "SELECT Supplier_ID, Name, Phone, Email FROM Supplier";
 
                     using (var reader = command.ExecuteReader())
                     {
@@ -30,9 +30,8 @@ namespace DataAccess.Strategy.Supplier
                             {
                                 Supplier_ID = reader.GetInt32(0),
                                 Name = reader.GetString(1),
-                                Contact = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
-                                Phone = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
-                                Email = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
+                                Phone = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                                Email = reader.IsDBNull(3) ? string.Empty : reader.GetString(3)
                             });
                         }
                     }
@@ -49,7 +48,7 @@ namespace DataAccess.Strategy.Supplier
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT Supplier_ID, Name, Contact, Phone, Email FROM Supplier WHERE Supplier_ID = @Supplier_ID";
+                    command.CommandText = "SELECT Supplier_ID, Name, Phone, Email FROM Supplier WHERE Supplier_ID = @Supplier_ID";
 
                     var parameter = command.CreateParameter();
                     parameter.ParameterName = "@Supplier_ID";
@@ -64,7 +63,6 @@ namespace DataAccess.Strategy.Supplier
                             {
                                 Supplier_ID = reader.GetInt32(0),
                                 Name = reader.GetString(1),
-                                Contact = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
                                 Phone = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
                                 Email = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
                             };
@@ -83,19 +81,14 @@ namespace DataAccess.Strategy.Supplier
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = @"INSERT INTO Supplier (Name, Contact, Phone, Email) 
-                                          VALUES (@Name, @Contact, @Phone, @Email);
+                    command.CommandText = @"INSERT INTO Supplier (Name, Phone, Email) 
+                                          VALUES (@Name, @Phone, @Email);
                                           SELECT last_insert_rowid();";
 
                     var paramName = command.CreateParameter();
                     paramName.ParameterName = "@Name";
                     paramName.Value = supplier.Name;
                     command.Parameters.Add(paramName);
-
-                    var paramContact = command.CreateParameter();
-                    paramContact.ParameterName = "@Contact";
-                    paramContact.Value = string.IsNullOrEmpty(supplier.Contact) ? DBNull.Value : supplier.Contact;
-                    command.Parameters.Add(paramContact);
 
                     var paramPhone = command.CreateParameter();
                     paramPhone.ParameterName = "@Phone";
@@ -122,7 +115,7 @@ namespace DataAccess.Strategy.Supplier
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = @"UPDATE Supplier 
-                                          SET Name = @Name, Contact = @Contact, Phone = @Phone, Email = @Email 
+                                          SET Name = @Name, Phone = @Phone, Email = @Email 
                                           WHERE Supplier_ID = @Supplier_ID";
 
                     var paramSupplier_ID = command.CreateParameter();
@@ -134,11 +127,6 @@ namespace DataAccess.Strategy.Supplier
                     paramName.ParameterName = "@Name";
                     paramName.Value = supplier.Name;
                     command.Parameters.Add(paramName);
-
-                    var paramContact = command.CreateParameter();
-                    paramContact.ParameterName = "@Contact";
-                    paramContact.Value = string.IsNullOrEmpty(supplier.Contact) ? DBNull.Value : supplier.Contact;
-                    command.Parameters.Add(paramContact);
 
                     var paramPhone = command.CreateParameter();
                     paramPhone.ParameterName = "@Phone";
@@ -183,7 +171,7 @@ namespace DataAccess.Strategy.Supplier
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT Supplier_ID, Name, Contact, Phone, Email FROM Supplier WHERE Name LIKE @Name";
+                    command.CommandText = "SELECT Supplier_ID, Name, Phone, Email FROM Supplier WHERE Name LIKE @Name";
 
                     var parameter = command.CreateParameter();
                     parameter.ParameterName = "@Name";
@@ -198,9 +186,8 @@ namespace DataAccess.Strategy.Supplier
                             {
                                 Supplier_ID = reader.GetInt32(0),
                                 Name = reader.GetString(1),
-                                Contact = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
-                                Phone = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
-                                Email = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
+                                Phone = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                                Email = reader.IsDBNull(3) ? string.Empty : reader.GetString(3)
                             });
                         }
                     }
