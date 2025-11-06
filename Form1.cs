@@ -1,4 +1,4 @@
-﻿using Domain.Services;
+using Domain.Services;
 using Domain.Models;
 
 namespace VIS_Projekt
@@ -67,7 +67,6 @@ namespace VIS_Projekt
                 var newSupplier = new Supplier
                 {
                     Name = txtSupplierName.Text,
-                    Contact = txtSupplierContact.Text,
                     Phone = txtSupplierPhone.Text,
                     Email = txtSupplierEmail.Text
                 };
@@ -136,7 +135,7 @@ namespace VIS_Projekt
                 foreach (var company in companies)
                 {
                     lstCompanies.Items.Add(
-                        $"{company.Company_ID} - {company.Company_Name} ({company.Contact_Email})"
+                        $"{company.Company_ID} - {company.Company_Name} | {company.Contact_Phone} | {company.Contact_Email}"
                     );
                 }
             }
@@ -155,7 +154,7 @@ namespace VIS_Projekt
                 foreach (var supplier in suppliers)
                 {
                     lstSuppliers.Items.Add(
-                        $"{supplier.Supplier_ID} - {supplier.Name}"
+                        $"{supplier.Supplier_ID} - {supplier.Name} | {supplier.Phone} | {supplier.Email}"
                     );
                 }
             }
@@ -174,7 +173,7 @@ namespace VIS_Projekt
                 foreach (var product in products)
                 {
                     lstProducts.Items.Add(
-                        $"{product.Product_ID} - {product.Name} ({product.Price} Kč)"
+                        $"{product.Product_ID} - {product.Name} | {product.Type} | {product.CarModel} | {product.Supplier_ID} | ({product.Price} Kč)"
                     );
                 }
             }
@@ -194,7 +193,6 @@ namespace VIS_Projekt
         private void ClearSupplierForm()
         {
             txtSupplierName.Clear();
-            txtSupplierContact.Clear();
             txtSupplierPhone.Clear();
             txtSupplierEmail.Clear();
         }
