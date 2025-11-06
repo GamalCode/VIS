@@ -1,4 +1,4 @@
-﻿using DataAccess.GlobalConfig;
+using DataAccess.GlobalConfig;
 using SQLitePCL;
 
 namespace VIS_Projekt
