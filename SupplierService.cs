@@ -1,4 +1,4 @@
-﻿using DataAccess.GlobalConfig;
+using DataAccess.GlobalConfig;
 using Domain.Mappers;
 using Domain.Models;
 
