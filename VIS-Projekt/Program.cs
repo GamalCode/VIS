@@ -14,7 +14,21 @@ namespace VIS_Projekt
                 GlobalConfig.InitializeConnections(DatabaseType.Sql);
 
                 ApplicationConfiguration.Initialize();
-                Application.Run(new Form1());
+
+                Form4 loginForm = new Form4();
+                DialogResult result = loginForm.ShowDialog();
+
+                if (result == DialogResult.OK)
+                {
+                    if (loginForm.UserRole == "admin")
+                    {
+                        Application.Run(new Form1());
+                    }
+                    else if (loginForm.UserRole == "user")
+                    {
+                        Application.Run(new Form3());
+                    }
+                }
             }
             catch (Exception ex)
             {

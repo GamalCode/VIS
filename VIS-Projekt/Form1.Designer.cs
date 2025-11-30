@@ -35,6 +35,7 @@
             lstStorage = new ListBox();
             btnAddStorage = new Button();
             btnChooseStorage = new Button();
+            btnUserUI = new Button();
             SuspendLayout();
             // 
             // label1
@@ -97,11 +98,22 @@
             btnChooseStorage.UseVisualStyleBackColor = true;
             btnChooseStorage.Click += btnChooseStorage_Click;
             // 
+            // btnUserUI
+            // 
+            btnUserUI.Location = new Point(194, 759);
+            btnUserUI.Name = "btnUserUI";
+            btnUserUI.Size = new Size(316, 46);
+            btnUserUI.TabIndex = 7;
+            btnUserUI.Text = "Zobrazit User UI";
+            btnUserUI.UseVisualStyleBackColor = true;
+            btnUserUI.Click += btnUserUI_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(13F, 32F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(683, 872);
+            Controls.Add(btnUserUI);
             Controls.Add(btnChooseStorage);
             Controls.Add(btnAddStorage);
             Controls.Add(lstStorage);
@@ -125,5 +137,6 @@
         private ListBox lstStorage;
         private Button btnAddStorage;
         private Button btnChooseStorage;
+        private Button btnUserUI;
     }
 }
