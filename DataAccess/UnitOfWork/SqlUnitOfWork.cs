@@ -17,6 +17,7 @@ namespace DataAccess.UnitOfWork
         private readonly DatabaseConnection _dbConnection;
         private IDbConnection? _connection;
         private IDbTransaction? _transaction;
+        private bool _disposed = false;
 
         private IUserDAO? _users;
         private ISupplierDAO? _suppliers;
@@ -33,22 +34,93 @@ namespace DataAccess.UnitOfWork
             _dbConnection = dbConnection;
         }
 
-        public IUserDAO Users => _users ??= new UserSqlDAO(_dbConnection);
-        public ISupplierDAO Suppliers => _suppliers ??= new SupplierSqlDAO(_dbConnection);
-        public IStorageDAO Storages => _storages ??= new StorageSqlDAO(_dbConnection);
-        public IProductDAO Products => _products ??= new ProductSqlDAO(_dbConnection);
-        public IStockDAO Stocks => _stocks ??= new StockSqlDAO(_dbConnection);
-        public ICompanyDAO Companies => _companies ??= new CompanySqlDAO(_dbConnection);
-        public IRequestDAO Requests => _requests ??= new RequestSqlDAO(_dbConnection);
-        public IRequestStockDAO RequestStocks => _requestStocks ??= new RequestStockSqlDAO(_dbConnection);
-        public IDefectiveProductDAO DefectiveProducts => _defectiveProducts ??= new DefectiveProductSqlDAO(_dbConnection);
+        public IDbConnection Connection
+        {
+            get
+            {
+                if (_connection == null)
+                {
+                    _connection = _dbConnection.CreateConnection();
+                    _connection.Open();
+                }
+                return _connection;
+            }
+        }
 
-        public void BeginTransaction() { }
+        public IDbTransaction? Transaction => _transaction;
 
-        public void Commit() { }
+        public IUserDAO Users => _users ??= new UserSqlDAO(_dbConnection, this);
+        public ISupplierDAO Suppliers => _suppliers ??= new SupplierSqlDAO(_dbConnection, this);
+        public IStorageDAO Storages => _storages ??= new StorageSqlDAO(_dbConnection, this);
+        public IProductDAO Products => _products ??= new ProductSqlDAO(_dbConnection, this);
+        public IStockDAO Stocks => _stocks ??= new StockSqlDAO(_dbConnection, this);
+        public ICompanyDAO Companies => _companies ??= new CompanySqlDAO(_dbConnection, this);
+        public IRequestDAO Requests => _requests ??= new RequestSqlDAO(_dbConnection, this);
+        public IRequestStockDAO RequestStocks => _requestStocks ??= new RequestStockSqlDAO(_dbConnection, this);
+        public IDefectiveProductDAO DefectiveProducts => _defectiveProducts ??= new DefectiveProductSqlDAO(_dbConnection, this);
 
-        public void Rollback() { }
+        public void BeginTransaction()
+        {
+            if (_transaction != null)
+            {
+                throw new InvalidOperationException("Transakce již běží.");
+            }
+            _transaction = Connection.BeginTransaction();
+        }
 
-        public void Dispose() { }
+        public void Commit()
+        {
+            if (_transaction == null)
+            {
+                throw new InvalidOperationException("Žádná transakce k potvrzení.");
+            }
+
+            try
+            {
+                _transaction.Commit();
+            }
+            finally
+            {
+                _transaction.Dispose();
+                _transaction = null;
+            }
+        }
+
+        public void Rollback()
+        {
+            if (_transaction == null)
+            {
+                throw new InvalidOperationException("Žádná transakce k vrácení.");
+            }
+
+            try
+            {
+                _transaction.Rollback();
+            }
+            finally
+            {
+                _transaction.Dispose();
+                _transaction = null;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _transaction?.Dispose();
+                    _connection?.Dispose();
+                }
+                _disposed = true;
+            }
+        }
     }
 }

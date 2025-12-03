@@ -1,25 +1,43 @@
 ﻿using DataAccess.Database;
+using DataAccess.UnitOfWork;
+using System.Data;
 
 namespace DataAccess.Strategy.Stock
 {
     public class StockSqlDAO : IStockDAO
     {
         private readonly DatabaseConnection _dbConnection;
+        private readonly IUnitOfWork? _unitOfWork;
 
-        public StockSqlDAO(DatabaseConnection dbConnection)
+        public StockSqlDAO(DatabaseConnection dbConnection, IUnitOfWork? unitOfWork = null)
         {
             _dbConnection = dbConnection;
+            _unitOfWork = unitOfWork;
         }
+
+        private IDbConnection GetConnection()
+        {
+            if (_unitOfWork != null)
+            {
+                return _unitOfWork.Connection;
+            }
+            var conn = _dbConnection.CreateConnection();
+            conn.Open();
+            return conn;
+        }
+
+        private bool ShouldDisposeConnection => _unitOfWork == null;
 
         public List<DAO.Stock> GetAll()
         {
             var stocks = new List<DAO.Stock>();
+            var connection = GetConnection();
 
-            using (var connection = _dbConnection.CreateConnection())
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Stock_ID, Product_ID, Storage_ID, Quantity, Location_In_Storage FROM Stock";
 
                     using (var reader = command.ExecuteReader())
@@ -38,17 +56,24 @@ namespace DataAccess.Strategy.Stock
                     }
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
 
             return stocks;
         }
 
         public DAO.Stock GetById(int id)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Stock_ID, Product_ID, Storage_ID, Quantity, Location_In_Storage FROM Stock WHERE Stock_ID = @Stock_ID";
 
                     var parameter = command.CreateParameter();
@@ -72,17 +97,24 @@ namespace DataAccess.Strategy.Stock
                     }
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
 
             return null;
         }
 
         public int Insert(DAO.Stock stock)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = @"INSERT INTO Stock (Product_ID, Storage_ID, Quantity, Location_In_Storage) 
                                           VALUES (@Product_ID, @Storage_ID, @Quantity, @Location_In_Storage);
                                           SELECT last_insert_rowid();";
@@ -112,15 +144,22 @@ namespace DataAccess.Strategy.Stock
                     return id;
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
         }
 
         public void Update(DAO.Stock stock)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = @"UPDATE Stock 
                                           SET Product_ID = @Product_ID, Storage_ID = @Storage_ID, Quantity = @Quantity, Location_In_Storage = @Location_In_Storage 
                                           WHERE Stock_ID = @Stock_ID";
@@ -153,15 +192,22 @@ namespace DataAccess.Strategy.Stock
                     command.ExecuteNonQuery();
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
         }
 
         public void Delete(int id)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "DELETE FROM Stock WHERE Stock_ID = @Stock_ID";
 
                     var parameter = command.CreateParameter();
@@ -172,17 +218,23 @@ namespace DataAccess.Strategy.Stock
                     command.ExecuteNonQuery();
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
         }
 
         public List<DAO.Stock> GetByProduct_ID(int product_ID)
         {
             var stocks = new List<DAO.Stock>();
+            var connection = GetConnection();
 
-            using (var connection = _dbConnection.CreateConnection())
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Stock_ID, Product_ID, Storage_ID, Quantity, Location_In_Storage FROM Stock WHERE Product_ID = @Product_ID";
 
                     var parameter = command.CreateParameter();
@@ -206,6 +258,11 @@ namespace DataAccess.Strategy.Stock
                     }
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
 
             return stocks;
         }
@@ -213,12 +270,13 @@ namespace DataAccess.Strategy.Stock
         public List<DAO.Stock> GetByStorage_ID(int storage_ID)
         {
             var stocks = new List<DAO.Stock>();
+            var connection = GetConnection();
 
-            using (var connection = _dbConnection.CreateConnection())
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Stock_ID, Product_ID, Storage_ID, Quantity, Location_In_Storage FROM Stock WHERE Storage_ID = @Storage_ID";
 
                     var parameter = command.CreateParameter();
@@ -241,6 +299,11 @@ namespace DataAccess.Strategy.Stock
                         }
                     }
                 }
+            }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
             }
 
             return stocks;

@@ -1,25 +1,43 @@
 ﻿using DataAccess.Database;
+using DataAccess.UnitOfWork;
+using System.Data;
 
 namespace DataAccess.Strategy.Company
 {
     public class CompanySqlDAO : ICompanyDAO
     {
         private readonly DatabaseConnection _dbConnection;
+        private readonly IUnitOfWork? _unitOfWork;
 
-        public CompanySqlDAO(DatabaseConnection dbConnection)
+        public CompanySqlDAO(DatabaseConnection dbConnection, IUnitOfWork? unitOfWork = null)
         {
             _dbConnection = dbConnection;
+            _unitOfWork = unitOfWork;
         }
+
+        private IDbConnection GetConnection()
+        {
+            if (_unitOfWork != null)
+            {
+                return _unitOfWork.Connection;
+            }
+            var conn = _dbConnection.CreateConnection();
+            conn.Open();
+            return conn;
+        }
+
+        private bool ShouldDisposeConnection => _unitOfWork == null;
 
         public List<DAO.Company> GetAll()
         {
             var companies = new List<DAO.Company>();
+            var connection = GetConnection();
 
-            using (var connection = _dbConnection.CreateConnection())
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Company_ID, Company_Name, Contact_Email, Contact_Phone, Storage_ID FROM Company";
 
                     using (var reader = command.ExecuteReader())
@@ -38,17 +56,24 @@ namespace DataAccess.Strategy.Company
                     }
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
 
             return companies;
         }
 
         public DAO.Company GetById(int id)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Company_ID, Company_Name, Contact_Email, Contact_Phone, Storage_ID FROM Company WHERE Company_ID = @Company_ID";
 
                     var parameter = command.CreateParameter();
@@ -72,17 +97,24 @@ namespace DataAccess.Strategy.Company
                     }
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
 
             return null;
         }
 
         public int Insert(DAO.Company company)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = @"INSERT INTO Company (Company_Name, Contact_Email, Contact_Phone, Storage_ID) 
                                           VALUES (@Company_Name, @Contact_Email, @Contact_Phone, @Storage_ID);
                                           SELECT last_insert_rowid();";
@@ -112,15 +144,22 @@ namespace DataAccess.Strategy.Company
                     return id;
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
         }
 
         public void Update(DAO.Company company)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = @"UPDATE Company 
                                           SET Company_Name = @Company_Name, Contact_Email = @Contact_Email, Contact_Phone = @Contact_Phone, Storage_ID = @Storage_ID 
                                           WHERE Company_ID = @Company_ID";
@@ -153,15 +192,22 @@ namespace DataAccess.Strategy.Company
                     command.ExecuteNonQuery();
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
         }
 
         public void Delete(int id)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "DELETE FROM Company WHERE Company_ID = @Company_ID";
 
                     var parameter = command.CreateParameter();
@@ -172,17 +218,23 @@ namespace DataAccess.Strategy.Company
                     command.ExecuteNonQuery();
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
         }
 
         public List<DAO.Company> GetByName(string name)
         {
             var companies = new List<DAO.Company>();
+            var connection = GetConnection();
 
-            using (var connection = _dbConnection.CreateConnection())
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Company_ID, Company_Name, Contact_Email, Contact_Phone, Storage_ID FROM Company WHERE Company_Name LIKE @Company_Name";
 
                     var parameter = command.CreateParameter();
@@ -206,6 +258,11 @@ namespace DataAccess.Strategy.Company
                     }
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
 
             return companies;
         }
@@ -213,12 +270,13 @@ namespace DataAccess.Strategy.Company
         public List<DAO.Company> GetByStorage_ID(int storage_ID)
         {
             var companies = new List<DAO.Company>();
+            var connection = GetConnection();
 
-            using (var connection = _dbConnection.CreateConnection())
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Company_ID, Company_Name, Contact_Email, Contact_Phone, Storage_ID FROM Company WHERE Storage_ID = @Storage_ID";
 
                     var parameter = command.CreateParameter();
@@ -241,6 +299,11 @@ namespace DataAccess.Strategy.Company
                         }
                     }
                 }
+            }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
             }
 
             return companies;

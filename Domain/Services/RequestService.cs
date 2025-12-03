@@ -1,101 +1,79 @@
-﻿using DataAccess.Database;
-using DataAccess.GlobalConfig;
+﻿using DataAccess.GlobalConfig;
 using Domain.Mappers;
 
 namespace Domain.Services
 {
     public class RequestService
     {
-        private readonly DatabaseConnection _dbConnection;
-
-        public RequestService()
-        {
-            var sqlConnector = GlobalConfig.Connection as DataAccess.Factory.SqlConnector;
-            if (sqlConnector != null)
-            {
-                _dbConnection = new DatabaseConnection();
-            }
-            else
-            {
-                _dbConnection = new DatabaseConnection();
-            }
-        }
-
         public int CreateRequestWithAllocation(int companyId, int productId, int requestedQuantity)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            using (var uow = GlobalConfig.UnitOfWorkFactory.Create())
             {
-                connection.Open();
-                using (var transaction = connection.BeginTransaction())
+                try
                 {
-                    try
-                    {
-                        var requestDAO = GlobalConfig.Connection.GetRequestDAO();
-                        var requestStockDAO = GlobalConfig.Connection.GetRequestStockDAO();
-                        var stockDAO = GlobalConfig.Connection.GetStockDAO();
+                    uow.BeginTransaction();
 
-                        // 1. Vytvoř Request (používáme Domain.Models.Request)
-                        var request = new Models.Request
+                    var request = new DataAccess.DAO.Request
+                    {
+                        Company_ID = companyId,
+                        Product_ID = productId,
+                        Request_Quantity = requestedQuantity,
+                        Request_Date = DateTime.Now,
+                        Status = "Pending"
+                    };
+
+                    int requestId = uow.Requests.Insert(request);
+
+                    var availableStocks = uow.Stocks.GetByProduct_ID(productId)
+                        .Where(s => s.Quantity > 0)
+                        .OrderBy(s => s.Stock_ID)
+                        .ToList();
+
+                    int remainingQuantity = requestedQuantity;
+
+                    foreach (var stock in availableStocks)
+                    {
+                        if (remainingQuantity <= 0) break;
+
+                        int toAllocate = Math.Min(stock.Quantity, remainingQuantity);
+
+                        var requestStock = new DataAccess.DAO.RequestStock
                         {
-                            Company_ID = companyId,
-                            Product_ID = productId,
-                            Request_Quantity = requestedQuantity,
-                            Request_Date = DateTime.Now,
-                            Status = "Pending"
+                            Request_ID = requestId,
+                            Stock_ID = stock.Stock_ID,
+                            Allocated_Quantity = toAllocate
                         };
+                        uow.RequestStocks.Insert(requestStock);
 
-                        int requestId = requestDAO.Insert(RequestMapper.ToDAO(request));
+                        stock.Quantity -= toAllocate;
+                        uow.Stocks.Update(stock);
 
-                        var availableStocks = stockDAO.GetByProduct_ID(productId)
-                            .Where(s => s.Quantity > 0)
-                            .OrderBy(s => s.Stock_ID)
-                            .ToList();
-
-                        int remainingQuantity = requestedQuantity;
-
-                        foreach (var stock in availableStocks)
-                        {
-                            if (remainingQuantity <= 0) break;
-
-                            int toAllocate = Math.Min(stock.Quantity, remainingQuantity);
-
-                            var requestStock = new DataAccess.DAO.RequestStock
-                            {
-                                Request_ID = requestId,
-                                Stock_ID = stock.Stock_ID,
-                                Allocated_Quantity = toAllocate
-                            };
-                            requestStockDAO.Insert(requestStock);
-
-                            stock.Quantity -= toAllocate;
-                            stockDAO.Update(stock);
-
-                            remainingQuantity -= toAllocate;
-                        }
-
-                        if (remainingQuantity > 0)
-                        {
-                            throw new InvalidOperationException(
-                                $"Nedostatek zásob! Chybí ještě {remainingQuantity} ks."
-                            );
-                        }
-
-                        request.Request_ID = requestId;
-                        request.Status = "Allocated";
-                        requestDAO.Update(RequestMapper.ToDAO(request));
-
-                        transaction.Commit();
-
-                        return requestId;
+                        remainingQuantity -= toAllocate;
                     }
-                    catch
+
+                    if (remainingQuantity > 0)
                     {
-                        transaction.Rollback();
-                        throw;
+                        throw new InvalidOperationException(
+                            $"Nedostatek zásob! Chybí ještě {remainingQuantity} ks."
+                        );
                     }
+
+                    request.Request_ID = requestId;
+                    request.Status = "Allocated";
+                    uow.Requests.Update(request);
+
+                    uow.Commit();
+
+                    return requestId;
+                }
+                catch
+                {
+                    uow.Rollback();
+                    throw;
                 }
             }
         }
+
         public List<Models.Request> GetAllRequests()
         {
             var requestDAO = GlobalConfig.Connection.GetRequestDAO();

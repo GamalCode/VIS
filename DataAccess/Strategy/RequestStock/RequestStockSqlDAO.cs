@@ -1,25 +1,43 @@
 ﻿using DataAccess.Database;
+using DataAccess.UnitOfWork;
+using System.Data;
 
 namespace DataAccess.Strategy.RequestStock
 {
     public class RequestStockSqlDAO : IRequestStockDAO
     {
         private readonly DatabaseConnection _dbConnection;
+        private readonly IUnitOfWork? _unitOfWork;
 
-        public RequestStockSqlDAO(DatabaseConnection dbConnection)
+        public RequestStockSqlDAO(DatabaseConnection dbConnection, IUnitOfWork? unitOfWork = null)
         {
             _dbConnection = dbConnection;
+            _unitOfWork = unitOfWork;
         }
+
+        private IDbConnection GetConnection()
+        {
+            if (_unitOfWork != null)
+            {
+                return _unitOfWork.Connection;
+            }
+            var conn = _dbConnection.CreateConnection();
+            conn.Open();
+            return conn;
+        }
+
+        private bool ShouldDisposeConnection => _unitOfWork == null;
 
         public List<DAO.RequestStock> GetAll()
         {
             var requestStocks = new List<DAO.RequestStock>();
+            var connection = GetConnection();
 
-            using (var connection = _dbConnection.CreateConnection())
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Request_Stock_ID, Request_ID, Stock_ID, Allocated_Quantity FROM RequestStock";
 
                     using (var reader = command.ExecuteReader())
@@ -37,17 +55,24 @@ namespace DataAccess.Strategy.RequestStock
                     }
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
 
             return requestStocks;
         }
 
         public DAO.RequestStock GetById(int id)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Request_Stock_ID, Request_ID, Stock_ID, Allocated_Quantity FROM RequestStock WHERE Request_Stock_ID = @Request_Stock_ID";
 
                     var parameter = command.CreateParameter();
@@ -70,17 +95,24 @@ namespace DataAccess.Strategy.RequestStock
                     }
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
 
             return null;
         }
 
         public int Insert(DAO.RequestStock requestStock)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = @"INSERT INTO RequestStock (Request_ID, Stock_ID, Allocated_Quantity) 
                                           VALUES (@Request_ID, @Stock_ID, @Allocated_Quantity);
                                           SELECT last_insert_rowid();";
@@ -105,15 +137,22 @@ namespace DataAccess.Strategy.RequestStock
                     return id;
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
         }
 
         public void Update(DAO.RequestStock requestStock)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = @"UPDATE RequestStock 
                                           SET Request_ID = @Request_ID, Stock_ID = @Stock_ID, Allocated_Quantity = @Allocated_Quantity 
                                           WHERE Request_Stock_ID = @Request_Stock_ID";
@@ -141,15 +180,22 @@ namespace DataAccess.Strategy.RequestStock
                     command.ExecuteNonQuery();
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
         }
 
         public void Delete(int id)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "DELETE FROM RequestStock WHERE Request_Stock_ID = @Request_Stock_ID";
 
                     var parameter = command.CreateParameter();
@@ -160,17 +206,23 @@ namespace DataAccess.Strategy.RequestStock
                     command.ExecuteNonQuery();
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
         }
 
         public List<DAO.RequestStock> GetByRequest_ID(int request_ID)
         {
             var requestStocks = new List<DAO.RequestStock>();
+            var connection = GetConnection();
 
-            using (var connection = _dbConnection.CreateConnection())
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Request_Stock_ID, Request_ID, Stock_ID, Allocated_Quantity FROM RequestStock WHERE Request_ID = @Request_ID";
 
                     var parameter = command.CreateParameter();
@@ -193,6 +245,11 @@ namespace DataAccess.Strategy.RequestStock
                     }
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
 
             return requestStocks;
         }
@@ -200,12 +257,13 @@ namespace DataAccess.Strategy.RequestStock
         public List<DAO.RequestStock> GetByStock_ID(int stock_ID)
         {
             var requestStocks = new List<DAO.RequestStock>();
+            var connection = GetConnection();
 
-            using (var connection = _dbConnection.CreateConnection())
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Request_Stock_ID, Request_ID, Stock_ID, Allocated_Quantity FROM RequestStock WHERE Stock_ID = @Stock_ID";
 
                     var parameter = command.CreateParameter();
@@ -227,6 +285,11 @@ namespace DataAccess.Strategy.RequestStock
                         }
                     }
                 }
+            }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
             }
 
             return requestStocks;

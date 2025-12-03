@@ -1,32 +1,45 @@
 ﻿using DataAccess.Database;
+using DataAccess.UnitOfWork;
+using System.Data;
 
 namespace DataAccess.Strategy.DefectiveProduct
 {
     public class DefectiveProductSqlDAO : IDefectiveProductDAO
     {
         private readonly DatabaseConnection _dbConnection;
+        private readonly IUnitOfWork? _unitOfWork;
 
-        public DefectiveProductSqlDAO(DatabaseConnection dbConnection)
+        public DefectiveProductSqlDAO(DatabaseConnection dbConnection, IUnitOfWork? unitOfWork = null)
         {
             _dbConnection = dbConnection;
+            _unitOfWork = unitOfWork;
         }
+
+        private IDbConnection GetConnection()
+        {
+            if (_unitOfWork != null) return _unitOfWork.Connection;
+            var conn = _dbConnection.CreateConnection();
+            conn.Open();
+            return conn;
+        }
+
+        private bool ShouldDisposeConnection => _unitOfWork == null;
 
         public List<DAO.DefectiveProduct> GetAll()
         {
-            var defectiveProducts = new List<DAO.DefectiveProduct>();
-
-            using (var connection = _dbConnection.CreateConnection())
+            var list = new List<DAO.DefectiveProduct>();
+            var connection = GetConnection();
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Defective_ID, Product_ID, Storage_ID, Quantity, Report_Date, Reason FROM DefectiveProduct";
-
                     using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            defectiveProducts.Add(new DAO.DefectiveProduct
+                            list.Add(new DAO.DefectiveProduct
                             {
                                 Defective_ID = reader.GetInt32(0),
                                 Product_ID = reader.GetInt32(1),
@@ -39,24 +52,20 @@ namespace DataAccess.Strategy.DefectiveProduct
                     }
                 }
             }
-
-            return defectiveProducts;
+            finally { if (ShouldDisposeConnection) connection.Dispose(); }
+            return list;
         }
 
         public DAO.DefectiveProduct GetById(int id)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Defective_ID, Product_ID, Storage_ID, Quantity, Report_Date, Reason FROM DefectiveProduct WHERE Defective_ID = @Defective_ID";
-
-                    var parameter = command.CreateParameter();
-                    parameter.ParameterName = "@Defective_ID";
-                    parameter.Value = id;
-                    command.Parameters.Add(parameter);
-
+                    var p = command.CreateParameter(); p.ParameterName = "@Defective_ID"; p.Value = id; command.Parameters.Add(p);
                     using (var reader = command.ExecuteReader())
                     {
                         if (reader.Read())
@@ -74,139 +83,85 @@ namespace DataAccess.Strategy.DefectiveProduct
                     }
                 }
             }
-
+            finally { if (ShouldDisposeConnection) connection.Dispose(); }
             return null;
         }
 
-        public int Insert(DAO.DefectiveProduct defectiveProduct)
+        public int Insert(DAO.DefectiveProduct dp)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = @"INSERT INTO DefectiveProduct (Product_ID, Storage_ID, Quantity, Report_Date, Reason) 
-                                          VALUES (@Product_ID, @Storage_ID, @Quantity, @Report_Date, @Reason);
-                                          SELECT last_insert_rowid();";
-
-                    var paramProduct_ID = command.CreateParameter();
-                    paramProduct_ID.ParameterName = "@Product_ID";
-                    paramProduct_ID.Value = defectiveProduct.Product_ID;
-                    command.Parameters.Add(paramProduct_ID);
-
-                    var paramStorage_ID = command.CreateParameter();
-                    paramStorage_ID.ParameterName = "@Storage_ID";
-                    paramStorage_ID.Value = defectiveProduct.Storage_ID;
-                    command.Parameters.Add(paramStorage_ID);
-
-                    var paramQuantity = command.CreateParameter();
-                    paramQuantity.ParameterName = "@Quantity";
-                    paramQuantity.Value = defectiveProduct.Quantity;
-                    command.Parameters.Add(paramQuantity);
-
-                    var paramReport_Date = command.CreateParameter();
-                    paramReport_Date.ParameterName = "@Report_Date";
-                    paramReport_Date.Value = defectiveProduct.Report_Date.ToString("yyyy-MM-dd HH:mm:ss");
-                    command.Parameters.Add(paramReport_Date);
-
-                    var paramReason = command.CreateParameter();
-                    paramReason.ParameterName = "@Reason";
-                    paramReason.Value = string.IsNullOrEmpty(defectiveProduct.Reason) ? DBNull.Value : defectiveProduct.Reason;
-                    command.Parameters.Add(paramReason);
-
+                    command.Transaction = _unitOfWork?.Transaction;
+                    command.CommandText = @"INSERT INTO DefectiveProduct (Product_ID, Storage_ID, Quantity, Report_Date, Reason) VALUES (@Product_ID, @Storage_ID, @Quantity, @Report_Date, @Reason); SELECT last_insert_rowid();";
+                    var p1 = command.CreateParameter(); p1.ParameterName = "@Product_ID"; p1.Value = dp.Product_ID; command.Parameters.Add(p1);
+                    var p2 = command.CreateParameter(); p2.ParameterName = "@Storage_ID"; p2.Value = dp.Storage_ID; command.Parameters.Add(p2);
+                    var p3 = command.CreateParameter(); p3.ParameterName = "@Quantity"; p3.Value = dp.Quantity; command.Parameters.Add(p3);
+                    var p4 = command.CreateParameter(); p4.ParameterName = "@Report_Date"; p4.Value = dp.Report_Date.ToString("yyyy-MM-dd HH:mm:ss"); command.Parameters.Add(p4);
+                    var p5 = command.CreateParameter(); p5.ParameterName = "@Reason"; p5.Value = string.IsNullOrEmpty(dp.Reason) ? DBNull.Value : dp.Reason; command.Parameters.Add(p5);
                     var id = Convert.ToInt32(command.ExecuteScalar());
-                    defectiveProduct.Defective_ID = id;
+                    dp.Defective_ID = id;
                     return id;
                 }
             }
+            finally { if (ShouldDisposeConnection) connection.Dispose(); }
         }
 
-        public void Update(DAO.DefectiveProduct defectiveProduct)
+        public void Update(DAO.DefectiveProduct dp)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = @"UPDATE DefectiveProduct 
-                                          SET Product_ID = @Product_ID, Storage_ID = @Storage_ID, Quantity = @Quantity, Report_Date = @Report_Date, Reason = @Reason 
-                                          WHERE Defective_ID = @Defective_ID";
-
-                    var paramDefective_ID = command.CreateParameter();
-                    paramDefective_ID.ParameterName = "@Defective_ID";
-                    paramDefective_ID.Value = defectiveProduct.Defective_ID;
-                    command.Parameters.Add(paramDefective_ID);
-
-                    var paramProduct_ID = command.CreateParameter();
-                    paramProduct_ID.ParameterName = "@Product_ID";
-                    paramProduct_ID.Value = defectiveProduct.Product_ID;
-                    command.Parameters.Add(paramProduct_ID);
-
-                    var paramStorage_ID = command.CreateParameter();
-                    paramStorage_ID.ParameterName = "@Storage_ID";
-                    paramStorage_ID.Value = defectiveProduct.Storage_ID;
-                    command.Parameters.Add(paramStorage_ID);
-
-                    var paramQuantity = command.CreateParameter();
-                    paramQuantity.ParameterName = "@Quantity";
-                    paramQuantity.Value = defectiveProduct.Quantity;
-                    command.Parameters.Add(paramQuantity);
-
-                    var paramReport_Date = command.CreateParameter();
-                    paramReport_Date.ParameterName = "@Report_Date";
-                    paramReport_Date.Value = defectiveProduct.Report_Date.ToString("yyyy-MM-dd HH:mm:ss");
-                    command.Parameters.Add(paramReport_Date);
-
-                    var paramReason = command.CreateParameter();
-                    paramReason.ParameterName = "@Reason";
-                    paramReason.Value = string.IsNullOrEmpty(defectiveProduct.Reason) ? DBNull.Value : defectiveProduct.Reason;
-                    command.Parameters.Add(paramReason);
-
+                    command.Transaction = _unitOfWork?.Transaction;
+                    command.CommandText = @"UPDATE DefectiveProduct SET Product_ID = @Product_ID, Storage_ID = @Storage_ID, Quantity = @Quantity, Report_Date = @Report_Date, Reason = @Reason WHERE Defective_ID = @Defective_ID";
+                    var p0 = command.CreateParameter(); p0.ParameterName = "@Defective_ID"; p0.Value = dp.Defective_ID; command.Parameters.Add(p0);
+                    var p1 = command.CreateParameter(); p1.ParameterName = "@Product_ID"; p1.Value = dp.Product_ID; command.Parameters.Add(p1);
+                    var p2 = command.CreateParameter(); p2.ParameterName = "@Storage_ID"; p2.Value = dp.Storage_ID; command.Parameters.Add(p2);
+                    var p3 = command.CreateParameter(); p3.ParameterName = "@Quantity"; p3.Value = dp.Quantity; command.Parameters.Add(p3);
+                    var p4 = command.CreateParameter(); p4.ParameterName = "@Report_Date"; p4.Value = dp.Report_Date.ToString("yyyy-MM-dd HH:mm:ss"); command.Parameters.Add(p4);
+                    var p5 = command.CreateParameter(); p5.ParameterName = "@Reason"; p5.Value = string.IsNullOrEmpty(dp.Reason) ? DBNull.Value : dp.Reason; command.Parameters.Add(p5);
                     command.ExecuteNonQuery();
                 }
             }
+            finally { if (ShouldDisposeConnection) connection.Dispose(); }
         }
 
         public void Delete(int id)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "DELETE FROM DefectiveProduct WHERE Defective_ID = @Defective_ID";
-
-                    var parameter = command.CreateParameter();
-                    parameter.ParameterName = "@Defective_ID";
-                    parameter.Value = id;
-                    command.Parameters.Add(parameter);
-
+                    var p = command.CreateParameter(); p.ParameterName = "@Defective_ID"; p.Value = id; command.Parameters.Add(p);
                     command.ExecuteNonQuery();
                 }
             }
+            finally { if (ShouldDisposeConnection) connection.Dispose(); }
         }
 
         public List<DAO.DefectiveProduct> GetByStorage_ID(int storage_ID)
         {
-            var defectiveProducts = new List<DAO.DefectiveProduct>();
-
-            using (var connection = _dbConnection.CreateConnection())
+            var list = new List<DAO.DefectiveProduct>();
+            var connection = GetConnection();
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Defective_ID, Product_ID, Storage_ID, Quantity, Report_Date, Reason FROM DefectiveProduct WHERE Storage_ID = @Storage_ID";
-
-                    var parameter = command.CreateParameter();
-                    parameter.ParameterName = "@Storage_ID";
-                    parameter.Value = storage_ID;
-                    command.Parameters.Add(parameter);
-
+                    var p = command.CreateParameter(); p.ParameterName = "@Storage_ID"; p.Value = storage_ID; command.Parameters.Add(p);
                     using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            defectiveProducts.Add(new DAO.DefectiveProduct
+                            list.Add(new DAO.DefectiveProduct
                             {
                                 Defective_ID = reader.GetInt32(0),
                                 Product_ID = reader.GetInt32(1),
@@ -219,31 +174,26 @@ namespace DataAccess.Strategy.DefectiveProduct
                     }
                 }
             }
-
-            return defectiveProducts;
+            finally { if (ShouldDisposeConnection) connection.Dispose(); }
+            return list;
         }
 
         public List<DAO.DefectiveProduct> GetByProduct_ID(int product_ID)
         {
-            var defectiveProducts = new List<DAO.DefectiveProduct>();
-
-            using (var connection = _dbConnection.CreateConnection())
+            var list = new List<DAO.DefectiveProduct>();
+            var connection = GetConnection();
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Defective_ID, Product_ID, Storage_ID, Quantity, Report_Date, Reason FROM DefectiveProduct WHERE Product_ID = @Product_ID";
-
-                    var parameter = command.CreateParameter();
-                    parameter.ParameterName = "@Product_ID";
-                    parameter.Value = product_ID;
-                    command.Parameters.Add(parameter);
-
+                    var p = command.CreateParameter(); p.ParameterName = "@Product_ID"; p.Value = product_ID; command.Parameters.Add(p);
                     using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            defectiveProducts.Add(new DAO.DefectiveProduct
+                            list.Add(new DAO.DefectiveProduct
                             {
                                 Defective_ID = reader.GetInt32(0),
                                 Product_ID = reader.GetInt32(1),
@@ -256,8 +206,8 @@ namespace DataAccess.Strategy.DefectiveProduct
                     }
                 }
             }
-
-            return defectiveProducts;
+            finally { if (ShouldDisposeConnection) connection.Dispose(); }
+            return list;
         }
     }
 }

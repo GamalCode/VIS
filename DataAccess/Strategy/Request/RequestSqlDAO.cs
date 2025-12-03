@@ -1,25 +1,43 @@
 ﻿using DataAccess.Database;
+using DataAccess.UnitOfWork;
+using System.Data;
 
 namespace DataAccess.Strategy.Request
 {
     public class RequestSqlDAO : IRequestDAO
     {
         private readonly DatabaseConnection _dbConnection;
+        private readonly IUnitOfWork? _unitOfWork;
 
-        public RequestSqlDAO(DatabaseConnection dbConnection)
+        public RequestSqlDAO(DatabaseConnection dbConnection, IUnitOfWork? unitOfWork = null)
         {
             _dbConnection = dbConnection;
+            _unitOfWork = unitOfWork;
         }
+
+        private IDbConnection GetConnection()
+        {
+            if (_unitOfWork != null)
+            {
+                return _unitOfWork.Connection;
+            }
+            var conn = _dbConnection.CreateConnection();
+            conn.Open();
+            return conn;
+        }
+
+        private bool ShouldDisposeConnection => _unitOfWork == null;
 
         public List<DAO.Request> GetAll()
         {
             var requests = new List<DAO.Request>();
+            var connection = GetConnection();
 
-            using (var connection = _dbConnection.CreateConnection())
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Request_ID, Company_ID, Product_ID, Request_Quantity, Request_Date, Status FROM Request";
 
                     using (var reader = command.ExecuteReader())
@@ -39,17 +57,24 @@ namespace DataAccess.Strategy.Request
                     }
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
 
             return requests;
         }
 
         public DAO.Request GetById(int id)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Request_ID, Company_ID, Product_ID, Request_Quantity, Request_Date, Status FROM Request WHERE Request_ID = @Request_ID";
 
                     var parameter = command.CreateParameter();
@@ -74,17 +99,24 @@ namespace DataAccess.Strategy.Request
                     }
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
 
             return null;
         }
 
         public int Insert(DAO.Request request)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = @"INSERT INTO Request (Company_ID, Product_ID, Request_Quantity, Request_Date, Status) 
                                           VALUES (@Company_ID, @Product_ID, @Request_Quantity, @Request_Date, @Status);
                                           SELECT last_insert_rowid();";
@@ -119,15 +151,22 @@ namespace DataAccess.Strategy.Request
                     return id;
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
         }
 
         public void Update(DAO.Request request)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = @"UPDATE Request 
                                           SET Company_ID = @Company_ID, Product_ID = @Product_ID, Request_Quantity = @Request_Quantity, Request_Date = @Request_Date, Status = @Status 
                                           WHERE Request_ID = @Request_ID";
@@ -165,15 +204,22 @@ namespace DataAccess.Strategy.Request
                     command.ExecuteNonQuery();
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
         }
 
         public void Delete(int id)
         {
-            using (var connection = _dbConnection.CreateConnection())
+            var connection = GetConnection();
+
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "DELETE FROM Request WHERE Request_ID = @Request_ID";
 
                     var parameter = command.CreateParameter();
@@ -184,17 +230,23 @@ namespace DataAccess.Strategy.Request
                     command.ExecuteNonQuery();
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
         }
 
         public List<DAO.Request> GetByCompany_ID(int company_ID)
         {
             var requests = new List<DAO.Request>();
+            var connection = GetConnection();
 
-            using (var connection = _dbConnection.CreateConnection())
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Request_ID, Company_ID, Product_ID, Request_Quantity, Request_Date, Status FROM Request WHERE Company_ID = @Company_ID";
 
                     var parameter = command.CreateParameter();
@@ -219,6 +271,11 @@ namespace DataAccess.Strategy.Request
                     }
                 }
             }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
+            }
 
             return requests;
         }
@@ -226,12 +283,13 @@ namespace DataAccess.Strategy.Request
         public List<DAO.Request> GetByStatus(string status)
         {
             var requests = new List<DAO.Request>();
+            var connection = GetConnection();
 
-            using (var connection = _dbConnection.CreateConnection())
+            try
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.Transaction = _unitOfWork?.Transaction;
                     command.CommandText = "SELECT Request_ID, Company_ID, Product_ID, Request_Quantity, Request_Date, Status FROM Request WHERE Status = @Status";
 
                     var parameter = command.CreateParameter();
@@ -255,6 +313,11 @@ namespace DataAccess.Strategy.Request
                         }
                     }
                 }
+            }
+            finally
+            {
+                if (ShouldDisposeConnection)
+                    connection.Dispose();
             }
 
             return requests;
