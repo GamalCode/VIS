@@ -6,11 +6,13 @@ using DataAccess.Strategy.Company;
 using DataAccess.Strategy.Request;
 using DataAccess.Strategy.RequestStock;
 using DataAccess.Strategy.DefectiveProduct;
+using DataAccess.Strategy.User;
 
 namespace DataAccess.Factory
 {
     public interface IDataConnector
     {
+        IUserDAO GetUserDAO();
         ISupplierDAO GetSupplierDAO();
         IStorageDAO GetStorageDAO();
         IProductDAO GetProductDAO();

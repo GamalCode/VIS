@@ -22,6 +22,7 @@ namespace DataAccess.Database
 
         private void CreateTables(IDbConnection connection)
         {
+            CreateUserTable(connection);
             CreateSupplierTable(connection);
             CreateStorageTable(connection);
             CreateCompanyTable(connection);
@@ -30,6 +31,31 @@ namespace DataAccess.Database
             CreateRequestTable(connection);
             CreateRequestStockTable(connection);
             CreateDefectiveProductTable(connection);
+        }
+
+        private void CreateUserTable(IDbConnection connection)
+        {
+            string sql = @"
+                CREATE TABLE IF NOT EXISTS User (
+                    User_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Username TEXT NOT NULL UNIQUE,
+                    Password TEXT NOT NULL,
+                    Role TEXT NOT NULL,
+                    Created_At TEXT
+                );
+                
+                -- Insert default users if table is empty
+                INSERT OR IGNORE INTO User (Username, Password, Role, Created_At) 
+                VALUES ('admin', 'heslo', 'admin', datetime('now'));
+                
+                INSERT OR IGNORE INTO User (Username, Password, Role, Created_At) 
+                VALUES ('user', 'heslo', 'user', datetime('now'));";
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sql;
+                command.ExecuteNonQuery();
+            }
         }
 
         private void CreateSupplierTable(IDbConnection connection)

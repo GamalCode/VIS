@@ -1,13 +1,16 @@
-﻿namespace VIS_Projekt
+﻿using Domain.Services;
+
+namespace VIS_Projekt
 {
     public partial class Form4 : Form
     {
-        public string UserRole { get; private set; } = string.Empty;
+        private readonly AuthService _authService;
 
         public Form4()
         {
             InitializeComponent();
 
+            _authService = new AuthService();
             txtPassword.PasswordChar = '*';
 
             btnLogin.Click += btnLogin_Click;
@@ -18,15 +21,19 @@
             string username = txtName.Text.Trim();
             string password = txtPassword.Text;
 
-            if (username == "admin" && password == "heslo")
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                UserRole = "admin";
-                this.DialogResult = DialogResult.OK;
-                this.Close();
+                MessageBox.Show("Vyplňte prosím jméno i heslo!",
+                    "Chyba přihlášení",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
             }
-            else if (username == "user" && password == "heslo")
+
+            bool loginSuccessful = _authService.Login(username, password);
+
+            if (loginSuccessful)
             {
-                UserRole = "user";
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }

@@ -36,6 +36,7 @@
             lstSupplierProducts = new ListBox();
             cbChooseCompany = new ComboBox();
             cbChooseSupplier = new ComboBox();
+            btnRequestForm = new Button();
             SuspendLayout();
             // 
             // cbChooseStorage
@@ -108,11 +109,22 @@
             cbChooseSupplier.TabIndex = 9;
             cbChooseSupplier.SelectedIndexChanged += cbChooseSupplier_SelectedIndexChanged;
             // 
+            // btnRequestForm
+            // 
+            btnRequestForm.Location = new Point(1021, 64);
+            btnRequestForm.Name = "btnRequestForm";
+            btnRequestForm.Size = new Size(262, 46);
+            btnRequestForm.TabIndex = 10;
+            btnRequestForm.Text = "Vytvořit objednávku";
+            btnRequestForm.UseVisualStyleBackColor = true;
+            btnRequestForm.Click += btnRequestForm_Click;
+            // 
             // Form3
             // 
             AutoScaleDimensions = new SizeF(13F, 32F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(2308, 907);
+            Controls.Add(btnRequestForm);
             Controls.Add(cbChooseSupplier);
             Controls.Add(cbChooseCompany);
             Controls.Add(lstSupplierProducts);
@@ -138,5 +150,6 @@
         private ListBox lstSupplierProducts;
         private ComboBox cbChooseCompany;
         private ComboBox cbChooseSupplier;
+        private Button btnRequestForm;
     }
 }

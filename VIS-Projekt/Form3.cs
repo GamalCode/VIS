@@ -37,6 +37,12 @@ namespace VIS_Projekt
             isLoading = false;
         }
 
+        private void btnRequestForm_Click(object sender, EventArgs e)
+        {
+            Form5 form5 = new Form5();
+            form5.ShowDialog();
+        }
+
         private void LoadStorages()
         {
             try

@@ -7,6 +7,7 @@ using DataAccess.Strategy.Company;
 using DataAccess.Strategy.Request;
 using DataAccess.Strategy.RequestStock;
 using DataAccess.Strategy.DefectiveProduct;
+using DataAccess.Strategy.User;
 
 namespace DataAccess.Factory
 {
@@ -17,6 +18,11 @@ namespace DataAccess.Factory
         public SqlConnector(DatabaseConnection dbConnection)
         {
             _dbConnection = dbConnection;
+        }
+
+        public IUserDAO GetUserDAO()
+        {
+            return new UserSqlDAO(_dbConnection);
         }
 
         public ISupplierDAO GetSupplierDAO()

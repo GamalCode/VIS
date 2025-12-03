@@ -1,49 +1,130 @@
-﻿using DataAccess.GlobalConfig;
+﻿using DataAccess.Database;
+using DataAccess.GlobalConfig;
 using Domain.Mappers;
-using Domain.Models;
 
 namespace Domain.Services
 {
     public class RequestService
     {
-        public List<Request> GetAllRequests()
+        private readonly DatabaseConnection _dbConnection;
+
+        public RequestService()
+        {
+            var sqlConnector = GlobalConfig.Connection as DataAccess.Factory.SqlConnector;
+            if (sqlConnector != null)
+            {
+                _dbConnection = new DatabaseConnection();
+            }
+            else
+            {
+                _dbConnection = new DatabaseConnection();
+            }
+        }
+
+        public int CreateRequestWithAllocation(int companyId, int productId, int requestedQuantity)
+        {
+            using (var connection = _dbConnection.CreateConnection())
+            {
+                connection.Open();
+                using (var transaction = connection.BeginTransaction())
+                {
+                    try
+                    {
+                        var requestDAO = GlobalConfig.Connection.GetRequestDAO();
+                        var requestStockDAO = GlobalConfig.Connection.GetRequestStockDAO();
+                        var stockDAO = GlobalConfig.Connection.GetStockDAO();
+
+                        // 1. Vytvoř Request (používáme Domain.Models.Request)
+                        var request = new Models.Request
+                        {
+                            Company_ID = companyId,
+                            Product_ID = productId,
+                            Request_Quantity = requestedQuantity,
+                            Request_Date = DateTime.Now,
+                            Status = "Pending"
+                        };
+
+                        int requestId = requestDAO.Insert(RequestMapper.ToDAO(request));
+
+                        var availableStocks = stockDAO.GetByProduct_ID(productId)
+                            .Where(s => s.Quantity > 0)
+                            .OrderBy(s => s.Stock_ID)
+                            .ToList();
+
+                        int remainingQuantity = requestedQuantity;
+
+                        foreach (var stock in availableStocks)
+                        {
+                            if (remainingQuantity <= 0) break;
+
+                            int toAllocate = Math.Min(stock.Quantity, remainingQuantity);
+
+                            var requestStock = new DataAccess.DAO.RequestStock
+                            {
+                                Request_ID = requestId,
+                                Stock_ID = stock.Stock_ID,
+                                Allocated_Quantity = toAllocate
+                            };
+                            requestStockDAO.Insert(requestStock);
+
+                            stock.Quantity -= toAllocate;
+                            stockDAO.Update(stock);
+
+                            remainingQuantity -= toAllocate;
+                        }
+
+                        if (remainingQuantity > 0)
+                        {
+                            throw new InvalidOperationException(
+                                $"Nedostatek zásob! Chybí ještě {remainingQuantity} ks."
+                            );
+                        }
+
+                        request.Request_ID = requestId;
+                        request.Status = "Allocated";
+                        requestDAO.Update(RequestMapper.ToDAO(request));
+
+                        transaction.Commit();
+
+                        return requestId;
+                    }
+                    catch
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
+                }
+            }
+        }
+        public List<Models.Request> GetAllRequests()
         {
             var requestDAO = GlobalConfig.Connection.GetRequestDAO();
             var daoRequests = requestDAO.GetAll();
             return RequestMapper.FromDAOList(daoRequests);
         }
 
-        public Request GetRequestById(int id)
+        public Models.Request GetRequestById(int id)
         {
             var requestDAO = GlobalConfig.Connection.GetRequestDAO();
             var daoRequest = requestDAO.GetById(id);
             return RequestMapper.FromDAO(daoRequest);
         }
 
-        public List<Request> GetRequestsByCompanyId(int companyId)
+        public List<Models.Request> GetRequestsByCompanyId(int companyId)
         {
             var requestDAO = GlobalConfig.Connection.GetRequestDAO();
             var daoRequests = requestDAO.GetByCompany_ID(companyId);
             return RequestMapper.FromDAOList(daoRequests);
         }
 
-        public List<Request> GetRequestsByStatus(string status)
+        public List<Models.Request> GetRequestsByStatus(string status)
         {
             var requestDAO = GlobalConfig.Connection.GetRequestDAO();
             var daoRequests = requestDAO.GetByStatus(status);
             return RequestMapper.FromDAOList(daoRequests);
         }
 
-        public int CreateRequest(Request request)
-        {
-            ValidateRequest(request);
-
-            var requestDAO = GlobalConfig.Connection.GetRequestDAO();
-            var daoRequest = RequestMapper.ToDAO(request);
-            return requestDAO.Insert(daoRequest);
-        }
-
-        public void UpdateRequest(Request request)
+        public void UpdateRequest(Models.Request request)
         {
             ValidateRequest(request);
 
@@ -90,7 +171,7 @@ namespace Domain.Services
             return requests.Count;
         }
 
-        private void ValidateRequest(Request request)
+        private void ValidateRequest(Models.Request request)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));

@@ -6,6 +6,7 @@ using DataAccess.Strategy.Company;
 using DataAccess.Strategy.Request;
 using DataAccess.Strategy.RequestStock;
 using DataAccess.Strategy.DefectiveProduct;
+using DataAccess.Strategy.User;
 
 namespace DataAccess.Factory
 {
@@ -16,6 +17,11 @@ namespace DataAccess.Factory
         public TextConnector(string dataPath = "data")
         {
             _dataPath = dataPath;
+        }
+
+        public IUserDAO GetUserDAO()
+        {
+            return new UserTextDAO(_dataPath);
         }
 
         public ISupplierDAO GetSupplierDAO()

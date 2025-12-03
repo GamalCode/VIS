@@ -1,4 +1,5 @@
 ﻿using DataAccess.GlobalConfig;
+using Domain.Session;
 using SQLitePCL;
 
 namespace VIS_Projekt
@@ -18,13 +19,13 @@ namespace VIS_Projekt
                 Form4 loginForm = new Form4();
                 DialogResult result = loginForm.ShowDialog();
 
-                if (result == DialogResult.OK)
+                if (result == DialogResult.OK && UserSession.IsLoggedIn)
                 {
-                    if (loginForm.UserRole == "admin")
+                    if (UserSession.IsAdmin())
                     {
                         Application.Run(new Form1());
                     }
-                    else if (loginForm.UserRole == "user")
+                    else if (UserSession.IsUser())
                     {
                         Application.Run(new Form3());
                     }
